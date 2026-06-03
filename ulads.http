@@ -1,0 +1,107 @@
+@baseUrl = http://localhost:3000
+
+# ==============================================================================
+# AUTHENTICATION & ACCESS TOKEN VARIABLES
+# ==============================================================================
+# After completing Step 2 (Login), copy the 'access_token' value from the 
+# response body and paste it right here:
+@token = paste_your_jwt_here_after_logging_in
+
+
+# ==============================================================================
+# STAGE 1: ACCOUNT REGISTRATION & LOGIN
+# ==============================================================================
+
+### 1. Register a New Member
+# ACTION: Run this first to seed a user account in your Neon database.
+# EXPECTED: 201 Created. Returns the user object without the password hash.
+POST {{baseUrl}}/users
+Content-Type: application/json
+
+{
+  "email": "student@ulads.edu",
+  "password": "securepassword123"
+}
+
+### 2. Login (Run this to generate your JWT)
+# ACTION: Run this after registering. 
+# EXPECTED: 201 Created (or 200 OK depending on your route setup).
+# RESPONSE: Contains the "access_token". COPY that token and paste it into 
+# the '@token' variable at the very top of this file.
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "student@ulads.edu",
+  "password": "securepassword123"
+}
+
+
+# ==============================================================================
+# STAGE 2: PROTECTED SELF-SERVICE USER ACTIONS (Requires @token)
+# ==============================================================================
+
+### 3. Complete Profile (Protected)
+# ACTION: Ensure your copied JWT is pasted in the @token variable at the top.
+# NOTICE: No UUID needed in the URL anymore! The backend relies entirely on the token.
+# EXPECTED: 200 OK. Returns updated profile fields with 'is_profile_complete = true'.
+PATCH {{baseUrl}}/users/complete-profile
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "full_name": "Jane Doe",
+  "level": 200,
+  "graduation_year": 2027
+}
+
+### 4. Partial Update (Update Level Only)
+# ACTION: Run this to test updating single fields dynamically on the logged-in user.
+# EXPECTED: 200 OK. Returns user object with updated level value.
+PATCH {{baseUrl}}/users/me
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "level": 300
+}
+
+
+# ==============================================================================
+# STAGE 3: PASSWORD RECOVERY (Nodemailer + Mailtrap Integration)
+# ==============================================================================
+
+### 5. Request Password Reset Link
+# ACTION: Fire this endpoint to simulate a forgotten password scenario.
+# EXPECTED: 200 OK with success confirmation message.
+# VERIFICATION: Open your Mailtrap inbox. You should find a new email with a reset link.
+POST {{baseUrl}}/auth/forgot-password
+Content-Type: application/json
+
+{
+  "email": "student@ulads.edu"
+}
+
+### 6. Reset Password Using Mailtrap Token
+# ACTION: Extract the long token from the link inside the Mailtrap email 
+# (e.g., /reset-password?token=XYZ...) and paste it over the token property below.
+# EXPECTED: 200 OK. Your password_hash updates, and the token is invalidated in the DB.
+POST {{baseUrl}}/auth/reset-password
+Content-Type: application/json
+
+{
+  "token": "REPLACE_WITH_HEX_TOKEN_FROM_YOUR_MAILTRAP_INBOX",
+  "new_password": "mybrandnewsecurepassword2026"
+}
+
+
+# ==============================================================================
+# STAGE 4: ACCOUNT DEACTIVATION (Requires @token)
+# ==============================================================================
+
+### 7. Soft Delete / Deactivate Account (Protected)
+# ACTION: Run this to ensure the user can securely trigger their own account deactivation.
+# EXPECTED: 200 OK. Sets 'is_active = FALSE' in the database.
+# VERIFICATION: If you try to log in again using Step 2, it should fail.
+DELETE {{baseUrl}}/users/me
+Authorization: Bearer {{token}}
