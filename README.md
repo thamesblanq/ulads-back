@@ -1,3 +1,4 @@
+````markdown
 # ULADS Backend API
 
 Backend server for the University of Lagos Association of Dental Students (ULADS) platform.
@@ -32,10 +33,14 @@ Backend server for the University of Lagos Association of Dental Students (ULADS
 
 ```bash
 pnpm install
-Configuration
-Create a .env file in the root directory:
+```
+````
 
-text
+### Configuration
+
+Create a `.env` file in the root directory:
+
+```
 PORT=3000
 DATABASE_URL=your_database_connection_string
 JWT_SECRET=your_secret
@@ -45,28 +50,61 @@ SMTP_USER=your_smtp_user
 SMTP_PASS=your_smtp_password
 SMTP_FROM=noreply@ulads.edu
 FRONTEND_URL=http://localhost:5173
-Running
-bash
+```
+
+### Running
+
+```bash
 pnpm run start:dev     # Development
 pnpm run build         # Production build
 pnpm run start:prod    # Production start
-API Overview
-Full interactive documentation available at http://localhost:3000/api when running locally.
+```
 
-Authentication (/auth)
-Method Endpoint Access Description
-POST /auth/login Public Authenticate and receive access token
-POST /auth/forgot-password Public Request password reset email
-POST /auth/reset-password Public Reset password with valid token
-Users (/users)
-Method Endpoint Access Description
-POST /users Public Register new account
-PATCH /users/complete-profile Authenticated Complete academic profile
-PATCH /users/me Authenticated Update own profile
-DELETE /users/me Authenticated Deactivate own account
-GET /users/:id Authenticated View user profile
-GET /users Admin List all users
-DELETE /users/:id Super Admin Remove user account
-License
+---
+
+## API Overview
+
+Full interactive documentation available at `http://localhost:3000/api` when running locally.
+
+### Authentication (`/auth`)
+
+| Method | Endpoint                | Access | Description                           |
+| ------ | ----------------------- | ------ | ------------------------------------- |
+| POST   | `/auth/login`           | Public | Authenticate and receive access token |
+| POST   | `/auth/forgot-password` | Public | Request password reset email          |
+| POST   | `/auth/reset-password`  | Public | Reset password with valid token       |
+
+### Users (`/users`)
+
+| Method | Endpoint                  | Access        | Description               |
+| ------ | ------------------------- | ------------- | ------------------------- |
+| POST   | `/users`                  | Public        | Register new account      |
+| PATCH  | `/users/complete-profile` | Authenticated | Complete academic profile |
+| PATCH  | `/users/me`               | Authenticated | Update own profile        |
+| DELETE | `/users/me`               | Authenticated | Deactivate own account    |
+| GET    | `/users/:id`              | Authenticated | View user profile         |
+| GET    | `/users`                  | Admin         | List all users            |
+| DELETE | `/users/:id`              | Super Admin   | Remove user account       |
+
+---
+
+## Project Structure
+
+```
+src/
+├── auth/              # Authentication module
+├── users/             # User management module
+├── common/            # Shared guards, decorators, filters, interceptors
+├── config/            # Environment and database configuration
+└── types/             # Shared TypeScript interfaces
+```
+
+---
+
+## License
+
 Private — University of Lagos Association of Dental Students.
+
+```
+
 ```
