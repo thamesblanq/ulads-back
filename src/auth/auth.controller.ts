@@ -1,11 +1,19 @@
-import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  HttpCode,
+  HttpStatus,
+  Res,
+} from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Response } from 'express';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 
-@ApiTags('Authentication') // Group name in UI
+@ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -15,11 +23,26 @@ export class AuthController {
   @ApiOperation({ summary: 'Authenticate user credentials' })
   @ApiResponse({
     status: 200,
-    description: 'Returns a valid JWT access token.',
+    description: 'Returns a success message and sets an HttpOnly JWT cookie.',
   })
   @ApiResponse({ status: 401, description: 'Invalid email or password.' })
-  login(@Body() loginDto: LoginDto) {
-    return this.authService.login(loginDto);
+  async login(
+    @Body() loginDto: LoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    // 1. Get the token from your service
+    const { access_token } = await this.authService.login(loginDto);
+
+    // 2. Attach the token as an HttpOnly cookie
+    res.cookie('jwt', access_token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 24 * 60 * 60 * 1000, // 1 day
+    });
+
+    // 3. Return the success message
+    return { message: 'Logged in successfully' };
   }
 
   @Post('forgot-password')
@@ -44,5 +67,23 @@ export class AuthController {
   })
   resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto.token, dto.new_password);
+  }
+
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Log out user and clear authentication cookie' })
+  @ApiResponse({
+    status: 200,
+    description: 'Successfully cleared the JWT cookie and logged the user out.',
+  })
+  async logout(@Res({ passthrough: true }) res: Response) {
+    // This tells the browser to instantly delete the "jwt" cookie
+    res.clearCookie('jwt', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+    });
+
+    return { message: 'Logged out successfully' };
   }
 }

@@ -70,6 +70,20 @@ export class UsersController {
     return this.usersService.completeProfile(userId, completeProfileDto);
   }
 
+  // 👇 Add this "me" route specifically ABOVE the ":id" route
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @Get('me')
+  @ApiOperation({ summary: 'Fetch the active user profile' })
+  @ApiResponse({ status: 200, description: 'Returns the current user.' })
+  getProfile(@Request() req) {
+    // We grab the secure UUID from the decrypted JWT cookie
+    const userId = req.user.sub as string;
+
+    // We fetch that specific user from the database
+    return this.usersService.findOne(userId);
+  }
+
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
   @Get(':id')
@@ -158,5 +172,30 @@ export class UsersController {
     // Note: You can wire this up to a hard-delete method in your UsersService later.
     // For now, it will return a success message to prove the guard works.
     return { message: `Superadmin authorized: User ${id} permanently wiped.` };
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.SUPERADMIN)
+  @ApiBearerAuth('JWT-auth')
+  @Patch(':id/role')
+  @ApiOperation({ summary: 'Change a user account role (Superadmin only)' })
+  updateRole(@Param('id') id: string, @Body('role') role: Role) {
+    // Note: You will need to add this method to your UsersService
+    return this.usersService.updateRole(id, role);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.SUPERADMIN)
+  @ApiBearerAuth('JWT-auth')
+  @Patch(':id/suspend')
+  @ApiOperation({
+    summary: 'Shadowban or restore a user account (Superadmin only)',
+  })
+  toggleSuspend(
+    @Param('id') id: string,
+    @Body('is_suspended') isSuspended: boolean,
+  ) {
+    // Note: You will need to add this method to your UsersService
+    return this.usersService.toggleSuspend(id, isSuspended);
   }
 }

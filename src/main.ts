@@ -4,9 +4,21 @@ import { ValidationPipe } from '@nestjs/common';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { LoggingInterceptor } from './common/intercerptors/logging.intercerptor';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'; // Import Swagger tools
+import cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // ==============================================================================
+  // CORS CONFIGURATION (Added this block!)
+  // ==============================================================================
+  app.enableCors({
+    origin: 'http://localhost:3000', // Your Next.js frontend URL
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    credentials: true, // Absolutely crucial for HttpOnly cookies!
+  });
+
+  app.use(cookieParser());
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -40,9 +52,12 @@ async function bootstrap() {
 
   const document = SwaggerModule.createDocument(app, config);
 
-  // Expose the documentation interactive UI at http://localhost:3000/api
+  // Expose the documentation interactive UI at http://localhost:3001/api
   SwaggerModule.setup('api', app, document);
+
   // ==============================================================================
-  await app.listen(process.env.PORT ?? 3000);
+  // Changed port from 3000 to 3001 so it doesn't clash with Next.js!
+  // ==============================================================================
+  await app.listen(process.env.PORT ?? 3001);
 }
 void bootstrap();

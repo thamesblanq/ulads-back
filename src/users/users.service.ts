@@ -122,12 +122,12 @@ export class UsersService {
 
   async findAll() {
     const query = `
-      SELECT id, email, full_name, level, graduation_year, role, is_profile_complete, created_at 
+      SELECT id, email, full_name, level, graduation_year, role, is_profile_complete, created_at,
+             (is_active = FALSE) as "isSuspended" 
       FROM users 
-      WHERE is_active = TRUE 
       ORDER BY created_at DESC;
     `;
-    const result = await db.query<UserRow>(query);
+    const result = await db.query(query);
     return result.rows;
   }
 
@@ -153,6 +153,60 @@ export class UsersService {
       console.error('Error deactivating user:', error);
       throw new InternalServerErrorException(
         'Could not deactivate user account',
+      );
+    }
+  }
+
+  // ====================================================================
+  // SUPERADMIN ACTIONS
+  // ====================================================================
+
+  async updateRole(id: string, role: string) {
+    const query = `
+      UPDATE users 
+      SET role = $1, updated_at = NOW() 
+      WHERE id = $2 
+      RETURNING id, email, role;
+    `;
+
+    try {
+      // Ensure role is perfectly lowercase before saving
+      const result = await db.query<UserRow>(query, [role.toLowerCase(), id]);
+
+      if (result.rows.length === 0) {
+        throw new NotFoundException(`User with ID ${id} not found`);
+      }
+
+      return result.rows[0];
+    } catch (error) {
+      console.error('Error updating role:', error);
+      throw new InternalServerErrorException('Could not update user role');
+    }
+  }
+
+  async toggleSuspend(id: string, isSuspended: boolean) {
+    // If they are suspended, is_active is FALSE. If restored, is_active is TRUE.
+    const isActive = !isSuspended;
+
+    const query = `
+      UPDATE users 
+      SET is_active = $1, updated_at = NOW() 
+      WHERE id = $2 
+      RETURNING id, email, is_active;
+    `;
+
+    try {
+      const result = await db.query<UserRow>(query, [isActive, id]);
+
+      if (result.rows.length === 0) {
+        throw new NotFoundException(`User with ID ${id} not found`);
+      }
+
+      return result.rows[0];
+    } catch (error) {
+      console.error('Error toggling suspension:', error);
+      throw new InternalServerErrorException(
+        'Could not update suspension status',
       );
     }
   }
