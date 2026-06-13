@@ -36,9 +36,10 @@ export class AuthController {
     // 2. Attach the token as an HttpOnly cookie
     res.cookie('jwt', access_token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: true,
       sameSite: 'none',
-      maxAge: 24 * 60 * 60 * 1000, // 1 day
+      maxAge: 24 * 60 * 60 * 1000, // 1 day,
+      path: '/', // Ensure the cookie is sent for all routes
     });
 
     // 3. Return the success message
@@ -82,8 +83,9 @@ export class AuthController {
     // This tells the browser to instantly delete the "jwt" cookie
     res.clearCookie('jwt', {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: true,
       sameSite: 'none',
+      path: '/', // Ensure the cookie is sent for all routes
     });
 
     return { message: 'Logged out successfully' };
