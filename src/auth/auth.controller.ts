@@ -42,7 +42,9 @@ export class AuthController {
     });
 
     // 3. Return the success message
-    return { message: 'Logged in successfully' };
+    return {
+      message: `Logged in successfully`,
+    };
   }
 
   @Post('forgot-password')

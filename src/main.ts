@@ -5,6 +5,7 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { LoggingInterceptor } from './common/intercerptors/logging.intercerptor';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'; // Import Swagger tools
 import cookieParser from 'cookie-parser';
+import compression from 'compression';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -19,6 +20,7 @@ async function bootstrap() {
   });
 
   app.use(cookieParser());
+  app.use(compression());
 
   app.useGlobalPipes(
     new ValidationPipe({

@@ -1,0 +1,16 @@
+config:
+  target: 'http://localhost:3001'
+  phases:
+    - duration: 20
+      arrivalRate: 20
+  defaults:
+    headers:
+      Authorization: 'Bearer YOUR_JWT_TOKEN_HERE' #
+scenarios:
+  - name: 'Full System Load'
+    flow:
+      - get: { url: '/elections/active' }
+      - think: 1 # Simulate a student pausing to read
+      - get: { url: '/announcements' }
+      - think: 1
+      - get: { url: '/resources' }
