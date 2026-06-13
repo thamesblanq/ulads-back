@@ -14,7 +14,7 @@ async function bootstrap() {
   // CORS CONFIGURATION (Added this block!)
   // ==============================================================================
   app.enableCors({
-    origin: 'http://localhost:3000', // Your Next.js frontend URL
+    origin: 'https://ulads-front.vercel.app', // Your Next.js frontend URL
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true, // Absolutely crucial for HttpOnly cookies!
   });
