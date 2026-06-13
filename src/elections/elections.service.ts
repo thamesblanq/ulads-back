@@ -41,6 +41,13 @@ export class ElectionsService {
     }
   }
 
+  async hasUserVoted(voterId: string, electionId: string) {
+    const query = `SELECT position FROM votes WHERE voter_id = $1 AND election_id = $2`;
+    const result = await db.query(query, [voterId, electionId]);
+    // Returns an array of positions the user has voted in (e.g., ['President', 'Secretary'])
+    return result.rows.map((row) => row.position);
+  }
+
   // ==========================================
   // PUBLIC: Get active elections with Candidates
   // ==========================================

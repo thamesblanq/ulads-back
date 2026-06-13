@@ -34,7 +34,7 @@ interface AuthenticatedRequest extends Express.Request {
 
 @ApiTags('Elections')
 @Controller('elections')
-@UseGuards(JwtAuthGuard) // Every route requires authentication
+@UseGuards(JwtAuthGuard)
 @ApiBearerAuth('JWT-auth')
 export class ElectionsController {
   constructor(private readonly electionsService: ElectionsService) {}
@@ -42,67 +42,53 @@ export class ElectionsController {
   @Post()
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERADMIN)
-  @ApiOperation({ summary: 'Create a new election (Admin/Superadmin only)' })
-  @ApiResponse({ status: 201, description: 'Election successfully scheduled.' })
+  @ApiOperation({ summary: 'Create a new election' })
   createElection(@Body() dto: CreateElectionDto) {
     return this.electionsService.createElection(dto);
   }
 
-  @Get('all') // Changed to /elections/all
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Get('all')
+  @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERADMIN)
-  @ApiOperation({ summary: 'Fetch all elections (Admin/Superadmin only)' })
-  @ApiResponse({
-    status: 200,
-    description: 'Returns an array of all elections.',
-  })
+  @ApiOperation({ summary: 'Fetch all elections' })
   findAll() {
-    // This calls the method you already wrote in your ElectionsService!
     return this.electionsService.getAllElections();
   }
 
   @Get('active')
   @ApiOperation({ summary: 'Fetch all currently open elections' })
-  @ApiResponse({
-    status: 200,
-    description: 'Returns an array of active elections.',
-  })
   getActiveElections() {
     return this.electionsService.getActiveElections();
   }
 
-  @Post('vote')
-  @ApiOperation({ summary: 'Cast a secure ballot for a specific candidate' })
-  @ApiResponse({ status: 201, description: 'Vote successfully recorded.' })
-  @ApiResponse({
-    status: 409,
-    description: 'Conflict: User has already voted for this position.',
-  })
-  castVote(@Request() req: AuthenticatedRequest, @Body() dto: CastVoteDto) {
+  @Get(':id/has-voted')
+  @ApiOperation({ summary: 'Check positions the user has voted for' })
+  hasUserVoted(
+    @Request() req: AuthenticatedRequest,
+    @Param('id') electionId: string,
+  ) {
     const voterId = req.user.sub;
-    return this.electionsService.castVote(voterId, dto);
+    return this.electionsService.hasUserVoted(voterId, electionId);
   }
 
-  // ==========================================
-  // ADMIN: Add Candidate
-  // ==========================================
+  @Post('vote')
+  @ApiOperation({ summary: 'Cast a secure ballot' })
+  @ApiResponse({ status: 201, description: 'Vote recorded.' })
+  @ApiResponse({ status: 409, description: 'Already voted for this position.' })
+  castVote(@Request() req: AuthenticatedRequest, @Body() dto: CastVoteDto) {
+    return this.electionsService.castVote(req.user.sub, dto);
+  }
+
   @Post(':id/candidates')
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERADMIN)
-  @ApiOperation({ summary: 'Add a candidate to an election (Admin only)' })
   addCandidate(@Param('id') electionId: string, @Body() dto: AddCandidateDto) {
     return this.electionsService.addCandidate(electionId, dto);
   }
 
-  // ==========================================
-  // ADMIN: Toggle Status
-  // ==========================================
   @Patch(':id/status')
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERADMIN)
-  @ApiOperation({
-    summary: 'Open or close voting for an election (Admin only)',
-  })
   toggleStatus(@Param('id') electionId: string, @Body() dto: ToggleStatusDto) {
     return this.electionsService.toggleElectionStatus(
       electionId,
@@ -110,15 +96,8 @@ export class ElectionsController {
     );
   }
 
-  // ==========================================
-  // PUBLIC: View Results
-  // ==========================================
   @Get(':id/results')
-  @ApiOperation({ summary: 'View tallied results for an election' })
-  @ApiResponse({
-    status: 200,
-    description: 'Returns vote counts grouped by candidate and position.',
-  })
+  @ApiOperation({ summary: 'View tallied results' })
   getResults(@Param('id') electionId: string) {
     return this.electionsService.getElectionResults(electionId);
   }
