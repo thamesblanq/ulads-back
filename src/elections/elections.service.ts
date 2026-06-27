@@ -64,7 +64,7 @@ export class ElectionsService {
               'name', u.full_name,
               'position', c.position,
               'imageUrl', COALESCE(c.image_url, '/placeholders/avatar.png'),
-              'manifesto', COALESCE(c.manifesto, ''), -- 👈 Safe raw string fallback
+              'manifesto', COALESCE(c.manifesto, 'no manifesto was updated'), -- 👈 Safe raw string fallback
               'votes', (SELECT COUNT(*)::int FROM votes v WHERE v.candidate_id = c.id)
             )
           ) FILTER (WHERE c.id IS NOT NULL),

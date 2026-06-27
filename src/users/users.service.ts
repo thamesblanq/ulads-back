@@ -45,15 +45,15 @@ export class UsersService {
     const query = `SELECT id, email, full_name, role, password_hash, is_profile_complete FROM users WHERE email = $1`;
     const result = await db.query<UserRow>(query, [email.toLowerCase()]);
 
-    console.log('Database result for email:', email);
-    console.log('User found:', result.rows.length > 0);
+    //console.log('Database result for email:', email);
+    //console.log('User found:', result.rows.length > 0);
 
     if (result.rows.length === 0) {
       throw new NotFoundException(`No user found with email: ${email}`);
     }
 
     const user = result.rows[0];
-    console.log('Hash present in result:', !!user.password_hash);
+    //console.log('Hash present in result:', !!user.password_hash);
 
     return user;
   }
