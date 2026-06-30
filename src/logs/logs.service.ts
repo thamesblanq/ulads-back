@@ -1,15 +1,52 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { db } from '@/config/database';
 
+// 1. Define the exact shape of the row coming from PostgreSQL
+interface ActivityLogRow {
+  id: string;
+  raw_created_at: Date | string; // Postgres driver usually returns Date objects
+  date: string;
+  email: string;
+  role: string;
+  route: string;
+  action: string;
+  status: number;
+}
+
 @Injectable()
 export class LogsService {
-  async findPaginated(page: number, limit: number) {
-    // Calculate how many rows to skip based on the current page
-    const offset = (page - 1) * limit;
+  async findPaginated(limit: number, cursor?: string) {
+    // 2. Explicitly type the cursor variables
+    let cursorDate: string | null = null;
+    let cursorId: string | null = null;
+
+    if (cursor) {
+      try {
+        const decodedString = Buffer.from(cursor, 'base64').toString('utf-8');
+        const [datePart, idPart] = decodedString.split('|');
+        cursorDate = datePart;
+        cursorId = idPart;
+      } catch (err) {
+        console.error(err);
+        throw new InternalServerErrorException('Invalid cursor format.');
+      }
+    }
+
+    const fetchLimit = limit + 1;
+
+    // 3. Strongly type the params array
+    const params: (number | string)[] = [fetchLimit];
+    let whereClause = '';
+
+    if (cursorDate && cursorId) {
+      whereClause = `WHERE (a.created_at, a.id) < ($2, $3)`;
+      params.push(cursorDate, cursorId);
+    }
 
     const dataQuery = `
       SELECT 
         a.id, 
+        a.created_at AS raw_created_at, 
         TO_CHAR(a.created_at, 'YYYY-MM-DD HH24:MI:SS') AS date, 
         COALESCE(u.email, 'Unauthenticated / Guest') AS email, 
         COALESCE(u.role, 'guest') AS role, 
@@ -18,34 +55,51 @@ export class LogsService {
         a.status_code AS status 
       FROM activity_logs a
       LEFT JOIN users u ON a.user_id = u.id
-      ORDER BY a.created_at DESC 
-      LIMIT $1 OFFSET $2;
+      ${whereClause}
+      ORDER BY a.created_at DESC, a.id DESC 
+      LIMIT $1;
     `;
 
-    // Extremely fast query to get the total number of logs
-    const countQuery = `SELECT COUNT(*) FROM activity_logs;`;
-
     try {
-      // Run both queries concurrently for maximum speed
-      const [dataResult, countResult] = await Promise.all([
-        db.query(dataQuery, [limit, offset]),
-        db.query(countQuery),
-      ]);
+      const dataResult = await db.query(dataQuery, params);
 
-      const total = parseInt(String(countResult.rows[0].count), 10);
-      const lastPage = Math.ceil(total / limit);
+      // 4. Cast the Postgres result into our strongly-typed interface
+      const rows = dataResult.rows as ActivityLogRow[];
 
-      // Return a clean pagination object
+      const hasNextPage = rows.length > limit;
+
+      if (hasNextPage) {
+        rows.pop();
+      }
+
+      let nextCursor: string | null = null;
+      if (rows.length > 0) {
+        const lastItem = rows[rows.length - 1];
+        // 5. TS now knows lastItem is an ActivityLogRow, so raw_created_at is safe!
+        const cursorString = `${new Date(lastItem.raw_created_at).toISOString()}|${lastItem.id}`;
+        nextCursor = Buffer.from(cursorString).toString('base64');
+      }
+
+      // 6. Explicitly build the object to satisfy the "unused variable" linting error
+      const sanitizedData = rows.map((row) => ({
+        id: row.id,
+        date: row.date,
+        email: row.email,
+        role: row.role,
+        route: row.route,
+        action: row.action,
+        status: row.status,
+      }));
+
       return {
-        data: dataResult.rows,
+        data: sanitizedData,
         meta: {
-          total,
-          currentPage: page,
-          lastPage,
+          nextCursor: hasNextPage ? nextCursor : null,
+          hasNextPage,
         },
       };
     } catch (error) {
-      console.error('Error fetching paginated logs:', error);
+      console.error('Error fetching cursor paginated logs:', error);
       throw new InternalServerErrorException('Could not fetch system logs');
     }
   }

@@ -2,6 +2,7 @@ import { Controller, Get, UseGuards, Query } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
+  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -20,15 +21,28 @@ export class LogsController {
   constructor(private readonly logsService: LogsService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Fetch paginated system audit logs' })
+  @ApiOperation({ summary: 'Fetch cursor-paginated system audit logs' })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Number of logs to return (default: 10)',
+  })
+  @ApiQuery({
+    name: 'cursor',
+    required: false,
+    description: 'Base64 encoded cursor string for fetching the next page',
+  })
   @ApiResponse({
     status: 200,
-    description: 'Returns an object with data array and meta object.',
+    description:
+      'Returns an object with data array and meta object (containing nextCursor).',
   })
   getRecentLogs(
-    @Query('page') page: string = '1',
-    @Query('limit') limit: string = '10', // 👈 Defaulting to 10 per page
+    @Query('limit') limit: string = '10',
+    @Query('cursor') cursor?: string, // 👈 Optional cursor string
   ) {
-    return this.logsService.findPaginated(+page, +limit);
+    // 1. Convert limit to number (+)
+    // 2. Pass the cursor exactly as it came in (or undefined if it's the first page)
+    return this.logsService.findPaginated(+limit, cursor);
   }
 }
