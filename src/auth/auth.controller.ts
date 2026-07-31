@@ -31,10 +31,10 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     // 1. Get the token from your service
-    const { access_token } = await this.authService.login(loginDto);
+    const result = await this.authService.login(loginDto);
 
     // 2. Attach the token as an HttpOnly cookie
-    res.cookie('jwt', access_token, {
+    res.cookie('jwt', result.access_token, {
       httpOnly: true,
       secure: true,
       sameSite: 'none',
@@ -45,6 +45,7 @@ export class AuthController {
     // 3. Return the success message
     return {
       message: `Logged in successfully`,
+      user: result.user,
     };
   }
 
