@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { Pool, PoolConfig } from 'pg';
+import { Pool } from 'pg';
 
 if (!process.env.DATABASE_URL) {
   throw new Error('DATABASE_URL is not defined');
@@ -11,6 +11,14 @@ if (!connectionString) {
   throw new Error('DATABASE_URL is not defined');
 }
 
-const config: PoolConfig = { connectionString };
+export const db = new Pool({
+  connectionString,
 
-export const db = new Pool(config);
+  max: 20,
+
+  idleTimeoutMillis: 30000,
+
+  connectionTimeoutMillis: 2000,
+
+  allowExitOnIdle: true,
+});
